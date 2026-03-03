@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-Copyright (c) 2019-2023, shtroizel
+Copyright (c) 2019-, shtroizel
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
