@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cassert>
 #include <functional>
+#include <map>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -850,22 +851,82 @@ namespace matchable
         std::vector<pt> & as_mutable_##p##_vect()                                                          \
             { return nullptr == t ? T::nil_##p##_vect() : t->as_mutable_##p##_vect(); }                    \
         void set_##p##_vect(std::vector<pt> const & v)                                                     \
-            { if (nullptr == t) { T::nil_##p##_vect() = v; for (auto f : T::nil_##p##_vect_obs()) f(); }   \
-              else t->set_##p##_vect(v); }                                                                 \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+            {                                                                                              \
+                T::nil_##p##_vect() = v;                                                                   \
+                for (auto const & o : T::nil_##p##_vect_obs())                                             \
+                    o.second();                                                                            \
+            }                                                                                              \
+            else { t->set_##p##_vect(v); }                                                                 \
+        }                                                                                                  \
                                                                                                            \
         /* single property */                                                                              \
         pt const & as_##p() const { return nullptr == t ? T::nil_##p() : t->as_##p(); }                    \
         pt & as_mutable_##p() { return nullptr == t ? T::nil_##p() : t->as_mutable_##p(); }                \
         void set_##p(pt const & s)                                                                         \
-            { if (nullptr == t) { T::nil_##p() = s; for (auto f : T::nil_##p##_obs()) f(); }               \
+            { if (nullptr == t) { T::nil_##p() = s; for (auto const & o : T::nil_##p##_obs()) o.second(); }\
               else t->set_##p(s); }                                                                        \
                                                                                                            \
         /* observers */                                                                                    \
-        void add_##p##_vect_observer(std::function<void ()> o)                                             \
-            { if (nullptr == t) T::nil_##p##_vect_obs().push_back(o);                                      \
-              else t->add_##p##_vect_observer(o); }                                                        \
-        void add_##p##_observer(std::function<void ()> o)                                                  \
-            { if (nullptr == t) T::nil_##p##_obs().push_back(o); else t->add_##p##_observer(o); }
+        void add_##p##_vect_observer(std::string const & id, std::function<void ()> o)                     \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+                T::nil_##p##_vect_obs()[id] = o;                                                           \
+            else                                                                                           \
+                t->add_##p##_vect_observer(id, o);                                                         \
+        }                                                                                                  \
+        void add_##p##_observer(std::string const & id, std::function<void ()> o)                          \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+                T::nil_##p##_obs()[id] = o;                                                                \
+            else                                                                                           \
+                t->add_##p##_observer(id, o);                                                              \
+        }                                                                                                  \
+        void del_##p##_vect_observer(std::string const & id)                                               \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+            {                                                                                              \
+                auto it = T::nil_##p##_vect_obs().find(id);                                                \
+                if (it != T::nil_##p##_vect_obs().end())                                                   \
+                    T::nil_##p##_vect_obs().erase(id);                                                     \
+            }                                                                                              \
+            else                                                                                           \
+            {                                                                                              \
+                t->del_##p##_vect_observer(id);                                                            \
+            }                                                                                              \
+        }                                                                                                  \
+        void del_##p##_observer(std::string id)                                                            \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+            {                                                                                              \
+                auto it = T::nil_##p##_obs().find(id);                                                     \
+                if (it != T::nil_##p##_obs().end())                                                        \
+                    T::nil_##p##_obs().erase(id);                                                          \
+            }                                                                                              \
+            else                                                                                           \
+            {                                                                                              \
+                t->del_##p##_observer(id);                                                                 \
+            }                                                                                              \
+        }                                                                                                  \
+        void call_##p##_vect_observers()                                                                   \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+            {                                                                                              \
+                for (auto const & o : T::nil_##p##_vect_obs())                                             \
+                    o.second();                                                                            \
+            }                                                                                              \
+            else { t->call_##p##_vect_observers(); }                                                       \
+        }                                                                                                  \
+        void call_##p##_observers()                                                                        \
+        {                                                                                                  \
+            if (nullptr == t)                                                                              \
+            {                                                                                              \
+                for (auto const & o : T::nil_##p##_obs())                                                  \
+                    o.second();                                                                            \
+            }                                                                                              \
+            else { t->call_##p##_observers(); }                                                            \
+        }
 
 
 #define matchable_declaration_property_amendment(pt, p, t)                                                 \
@@ -875,19 +936,43 @@ namespace matchable
         std::vector<pt> & as_mutable_##p##_vect() { return p##_vect_mb().mut_at(Type(clone())); }          \
         void set_##p##_vect(std::vector<pt> const & v)                                                     \
             { auto c = Type(clone()); p##_vect_mb().set(c, v);                                             \
-              for (auto f : p##_vect_obs_mb().at(c)) f(); }                                                \
+              for (auto o : p##_vect_obs_mb().at(c)) o.second(); }                                         \
                                                                                                            \
         /* single property */                                                                              \
         pt const & as_##p() const { return p##_mb().at(Type(clone())); }                                   \
         pt & as_mutable_##p() { return p##_mb().mut_at(Type(clone())); }                                   \
         void set_##p(pt const & s)                                                                         \
-            { auto c = Type(clone()); p##_mb().set(c, s); for (auto f : p##_obs_mb().at(c)) f(); }         \
+            { auto c = Type(clone()); p##_mb().set(c, s); for (auto o : p##_obs_mb().at(c)) o.second(); }  \
                                                                                                            \
         /* observers */                                                                                    \
-        void add_##p##_vect_observer(std::function<void ()> f)                                             \
-            { p##_vect_obs_mb().mut_at(Type(clone())).push_back(f); }                                      \
-        void add_##p##_observer(std::function<void ()> f)                                                  \
-            { p##_obs_mb().mut_at(Type(clone())).push_back(f); }                                           \
+        void add_##p##_vect_observer(std::string const & id, std::function<void ()> f)                     \
+            { p##_vect_obs_mb().mut_at(Type(clone()))[id] = f; }                                           \
+        void add_##p##_observer(std::string const & id, std::function<void ()> f)                          \
+            { p##_obs_mb().mut_at(Type(clone()))[id] = f; }                                                \
+        void del_##p##_vect_observer(std::string const & id)                                               \
+        {                                                                                                  \
+            auto c = Type(clone());                                                                        \
+            auto it = p##_vect_obs_mb().mut_at(c).find(id);                                                \
+            if (it != p##_vect_obs_mb().mut_at(c).end())                                                   \
+                p##_vect_obs_mb().mut_at(Type(clone())).erase(it);                                         \
+        }                                                                                                  \
+        void del_##p##_observer(std::string const & id)                                                    \
+        {                                                                                                  \
+            auto c = Type(clone());                                                                        \
+            auto it = p##_obs_mb().mut_at(c).find(id);                                                     \
+            if (it != p##_obs_mb().mut_at(c).end())                                                        \
+                p##_obs_mb().mut_at(c).erase(it);                                                          \
+        }                                                                                                  \
+        void call_##p##_vect_observers()                                                                   \
+        {                                                                                                  \
+            auto c = Type(clone());                                                                        \
+            for (auto o : p##_vect_obs_mb().at(c)) o.second();                                             \
+        }                                                                                                  \
+        void call_##p##_observers()                                                                        \
+        {                                                                                                  \
+            auto c = Type(clone());                                                                        \
+            for (auto o : p##_obs_mb().at(c)) o.second();                                                  \
+        }                                                                                                  \
                                                                                                            \
     private:                                                                                               \
         /* vector property for non-nil variants */                                                         \
@@ -896,11 +981,15 @@ namespace matchable
         /* vector property for nil variant */                                                              \
         static std::vector<pt> & nil_##p##_vect() { static std::vector<pt> v; return v; }                  \
         /* observers of vector property for non-nil variants */                                            \
-        static matchable::MatchBox<t::Type, std::vector<std::function<void ()>>> & p##_vect_obs_mb()       \
-            { static matchable::MatchBox<t::Type, std::vector<std::function<void ()>>> mb; return mb; }    \
+        static matchable::MatchBox<t::Type, std::map<std::string,                                          \
+                                                     std::function<void ()>>> & p##_vect_obs_mb()          \
+        {                                                                                                  \
+            static matchable::MatchBox<t::Type, std::map<std::string, std::function<void ()>>> mb;         \
+            return mb;                                                                                     \
+        }                                                                                                  \
         /* observers of vector property for nil variant */                                                 \
-        static std::vector<std::function<void ()>> & nil_##p##_vect_obs()                                  \
-            { static std::vector<std::function<void ()>> v; return v; }                                    \
+        static std::map<std::string, std::function<void ()>> & nil_##p##_vect_obs()                        \
+            { static std::map<std::string, std::function<void ()>> m; return m; }                          \
                                                                                                            \
         /* single property */                                                                              \
         static matchable::MatchBox<t::Type, pt> & p##_mb()                                                 \
@@ -908,11 +997,14 @@ namespace matchable
         /* single property for nil */                                                                      \
         static pt & nil_##p() { static pt s; return s; }                                                   \
         /* observers of single property for non-nil variants */                                            \
-        static matchable::MatchBox<t::Type, std::vector<std::function<void ()>>> & p##_obs_mb()            \
-            { static matchable::MatchBox<t::Type, std::vector<std::function<void ()>>> mb; return mb; }    \
+        static matchable::MatchBox<t::Type, std::map<std::string, std::function<void ()>>> & p##_obs_mb()  \
+        {                                                                                                  \
+            static matchable::MatchBox<t::Type, std::map<std::string, std::function<void ()>>> mb;         \
+            return mb;                                                                                     \
+        }                                                                                                  \
         /* observers of single property for nil variant */                                                 \
-        static std::vector<std::function<void ()>> & nil_##p##_obs()                                       \
-            { static std::vector<std::function<void ()>> v; return v; }
+        static std::map<std::string, std::function<void ()>> & nil_##p##_obs()                             \
+            { static std::map<std::string, std::function<void ()>> v; return v; }
 
 
 #define PROPERTYx1_MATCHABLE(pt0, p0, t, ...)                                                              \
