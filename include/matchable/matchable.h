@@ -1802,9 +1802,9 @@ namespace matchable
             if (esc.size() == 0)
                 return "";
 
-            for (auto const & [code, symbol] : code_symbol_pairs())
-                if (code == esc)
-                    return symbol;
+            for (size_t i = 0; i < code_symbol_pairs().size(); ++i)
+                if (code_symbol_pairs()[i].first == esc)
+                    return code_symbol_pairs()[i].second;
 
             return esc;
         }
@@ -1817,8 +1817,10 @@ namespace matchable
                 unescaped.erase(0, 4);
 
             size_t index = 0;
-            for (auto const & [code, symbol] : code_symbol_pairs())
+            for (size_t i = 0; i < code_symbol_pairs().size(); ++i)
             {
+                std::string const & code = code_symbol_pairs()[i].first;
+                std::string const & symbol = code_symbol_pairs()[i].second;
                 index = 0;
                 while (true)
                 {
