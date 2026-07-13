@@ -579,7 +579,7 @@ namespace matchable
             {                                                                                              \
                 if (nullptr != index)                                                                      \
                     *index = static_cast<int>(variants().size());                                          \
-                static auto pred = [](auto const & a, auto const & b) { return a.lt_by_string(b); };       \
+                static auto pred = [](Type const & a, Type const & b) { return a.lt_by_string(b); };       \
                 by_string().insert(                                                                        \
                     std::upper_bound(by_string().begin(), by_string().end(), variant, pred),               \
                     variant                                                                                \
