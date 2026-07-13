@@ -569,7 +569,7 @@ namespace matchable
                     return v;                                                                              \
             return Type{};                                                                                 \
         }                                                                                                  \
-        static bool const register_##t = I##t::register_variant(nil, nullptr);                             \
+        static bool const register_##t __attribute__((unused)) = I##t::register_variant(nil, nullptr);     \
     }
 
 
@@ -660,7 +660,8 @@ namespace matchable
 #ifdef MATCHABLE_OMIT_BY_INDEX
 #define matchable_create_variant_end(t, v)                                                                 \
         };                                                                                                 \
-        static bool const register_me_##t##v = I##t::register_variant(v::grab(), nullptr);                 \
+        static bool const register_me_##t##v __attribute__((unused)) =                                     \
+            I##t::register_variant(v::grab(), nullptr);                                                    \
     }
 #else
 #define matchable_create_variant_end(t, v)                                                                 \
@@ -668,7 +669,8 @@ namespace matchable
             int as_index() const override { return *m_index(); }                                           \
             static int * m_index() { static int i{-1}; return &i; }                                        \
         };                                                                                                 \
-        static bool const register_me_##t##v = I##t::register_variant(v::grab(), v::m_index());            \
+        static bool const register_me_##t##v __attribute__((unused)) =                                     \
+            I##t::register_variant(v::grab(), v::m_index());                                               \
     }
 #endif
 
@@ -1679,21 +1681,21 @@ namespace matchable
 
 
 #define MATCHABLE_VARIANT_PROPERTY_VALUE(t, v, p, pv)                                                      \
-    static bool const MATCHABLE_VARIANT_PROPERTY_VALUE_init_##t##_##v##_##p =                              \
+    static bool const MATCHABLE_VARIANT_PROPERTY_VALUE_init_##t##_##v##_##p __attribute__((unused)) =      \
         [](){t::v::grab().set_##p(pv); return true;}();
 
 #define MATCHABLE_VARIANT_PROPERTY_VALUES(t, v, p, ...)                                                    \
-    static bool const MATCHABLE_VARIANT_PROPERTY_VALUES_init_##t##_##v##_##p =                             \
+    static bool const MATCHABLE_VARIANT_PROPERTY_VALUES_init_##t##_##v##_##p __attribute__((unused)) =     \
         [](decltype(t::v::grab().as_##p##_vect()) sv)                                                      \
             { t::v::grab().set_##p##_##vect(sv); return true; }({__VA_ARGS__});
 
 
 #define MATCHABLE_NIL_PROPERTY_VALUE(t, p, pv)                                                             \
-    static bool const SET_PROPERTY_init_##t##_nil_##p =                                                    \
+    static bool const SET_PROPERTY_init_##t##_nil_##p __attribute__((unused)) =                            \
         [](){t::nil.set_##p(pv); return true;}();
 
 #define MATCHABLE_NIL_PROPERTY_VALUES(t, p, ...)                                                           \
-    static bool const SET_PROPERTY_VECT_init_##t##_nil_##p =                                               \
+    static bool const SET_PROPERTY_VECT_init_##t##_nil_##p __attribute__((unused)) =                       \
         [](decltype(t::nil.as_##p##_vect()) sv)                                                            \
             { t::nil.set_##p##_##vect(sv); return true; }({__VA_ARGS__});
 
